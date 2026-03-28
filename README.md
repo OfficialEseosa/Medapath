@@ -53,12 +53,31 @@ Patients can download a professionally formatted **Analysis Report** as a printa
 
 ## APIs & Services Used
 
-| API / Service | How We Use It |
-|---|---|
-| **Google Gemini AI** (gemini-3-flash-preview) | Symptom analysis with image understanding, plain-language diagnosis, insurance coverage verification for hospitals, and live follow-up chat conversations |
-| **Google Places API** | Real-time discovery of nearby hospitals for any ZIP code in the US, with ratings and open/closed status |
-| **Google Geocoding API** | Converts ZIP codes to coordinates for distance calculations, and reverse-geocodes browser location to auto-fill ZIP |
-| **Google Maps JavaScript API** | Interactive hospital map with custom SVG markers, user location dot, auto-fit bounds, and click-to-select |
+### Google Gemini AI (`gemini-3-flash-preview`)
+
+Gemini is the core intelligence behind MedaPath. We use it in **four distinct ways** across the app:
+
+1. **Symptom Analysis & Triage** — When a patient submits their symptoms, Gemini receives the symptom description, severity, and duration. It returns a structured JSON response with the likely condition, three possible conditions, urgency level, plain-language advice, a detailed body-level explanation, and a recommended care type. The prompt instructs Gemini to respond as a "friendly medical triage assistant" using everyday language, not medical jargon.
+
+2. **Medical Image Understanding** — When a patient uploads a photo or video of the affected area, the image is base64-encoded and sent to Gemini as an inline multimodal input (image placed before text per Gemini's documentation for optimal results). Gemini analyzes the visual content alongside the symptom text and returns an `imageNote` describing what it observes in the image in plain language.
+
+3. **Insurance Coverage Verification** — After hospitals are matched, Gemini receives the list of top hospitals along with the patient's insurance provider, plan name, and diagnosed condition. It generates a one-sentence coverage insight for each hospital, explaining whether the patient's plan would likely cover treatment there. This gives patients practical, actionable insurance guidance without needing to call their insurer.
+
+4. **Live Follow-Up Chat** — After diagnosis, patients can chat with Gemini in a multi-turn conversation. The AI receives the full patient context (name, age, symptoms, diagnosis, urgency, advice) as a system prompt, then maintains conversation history across messages. Patients can ask things like "Can I take ibuprofen?", "Is this contagious?", or "What should I tell the doctor?" — and Gemini responds conversationally while always reminding them to seek professional advice.
+
+### Google Places API (Nearby Search)
+
+When a patient enters a ZIP code outside our seed data coverage area (Atlanta), the backend calls the Places API Nearby Search endpoint to find real hospitals within a 10-mile radius of the geocoded ZIP coordinates. The response includes hospital names, addresses, coordinates, ratings, and open/closed status — all displayed on the map and in the list view.
+
+### Google Geocoding API
+
+Used in two directions:
+- **Forward geocoding (ZIP to coordinates):** When the patient submits the intake form, the backend geocodes their ZIP code to latitude/longitude. These coordinates drive the hospital distance calculations and map centering.
+- **Reverse geocoding (coordinates to ZIP):** When the patient grants browser location access, the frontend reverse-geocodes their coordinates to auto-fill the ZIP code field for convenience.
+
+### Google Maps JavaScript API
+
+Powers the interactive hospital map on the Results page. Custom SVG pin markers show numbered hospitals (with the top match in a larger pin), a blue dot marks the patient's ZIP code center, and the map auto-fits bounds to show all markers. Clicking a marker selects that hospital and shows its details in a side panel.
 
 ---
 
