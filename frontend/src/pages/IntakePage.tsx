@@ -13,6 +13,7 @@ export default function IntakePage() {
     planName: ''
   });
   const [loading, setLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -20,22 +21,49 @@ export default function IntakePage() {
   };
 
   const handleUseLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            // Very simple reverse geocoding or just store lat/long for now
-            // But API needs zipCode as string, let's just simulate or ask user if API demands zipCode
-            // To fulfill the requirement we can just store lat/long to be passed? Wait, IntakeRequest needs zipCode
-            // Usually we'd do a reverse geocode here, but for simplicity we'll just prompt or leave as is.
-            alert(`Location found: ${position.coords.latitude}, ${position.coords.longitude}. (Note: auto-zipcode lookup requires extra API)`);
-          } catch (err) {
-            console.error(err);
-          }
-        },
-        () => alert('Unable to get location')
-      );
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser.');
+      return;
     }
+
+    setLocationLoading(true);
+    setError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
+
+        try {
+          const res = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&result_type=postal_code&key=${apiKey}`
+          );
+          const data = await res.json();
+
+          if (data.status === 'OK' && data.results.length > 0) {
+            const postalComponent = data.results[0].address_components.find(
+              (c: { types: string[] }) => c.types.includes('postal_code')
+            );
+            if (postalComponent) {
+              setFormData(prev => ({ ...prev, zipCode: postalComponent.short_name }));
+            } else {
+              setError('Could not determine ZIP code from your location. Please enter it manually.');
+            }
+          } else {
+            setError('Reverse geocoding failed. Please enter your ZIP code manually.');
+          }
+        } catch {
+          setError('Failed to look up your ZIP code. Please enter it manually.');
+        } finally {
+          setLocationLoading(false);
+        }
+      },
+      () => {
+        setError('Location access was denied. Please enter your ZIP code manually.');
+        setLocationLoading(false);
+      },
+      { timeout: 10000 }
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -168,10 +196,15 @@ export default function IntakePage() {
                 <button
                   type="button"
                   onClick={handleUseLocation}
-                  className="absolute right-2 top-2 bottom-2 px-3 bg-surface-container-high hover:bg-surface-container-highest rounded-lg text-xs font-bold text-primary transition-colors flex items-center gap-1"
+                  disabled={locationLoading}
+                  className="absolute right-2 top-2 bottom-2 px-3 bg-surface-container-high hover:bg-surface-container-highest rounded-lg text-xs font-bold text-primary transition-colors flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <span className="material-symbols-outlined text-sm">my_location</span>
-                  Use Location
+                  {locationLoading ? (
+                    <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span className="material-symbols-outlined text-sm">my_location</span>
+                  )}
+                  {locationLoading ? 'Locating…' : 'Use Location'}
                 </button>
               </div>
             </div>
