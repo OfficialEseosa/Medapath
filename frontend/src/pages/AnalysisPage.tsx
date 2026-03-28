@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiUrl } from '../lib/api';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function AnalysisPage() {
@@ -28,7 +29,7 @@ export default function AnalysisPage() {
     const sessionId = sessionStorage.getItem('sessionId');
     if (sessionId) {
       setLoading(true);
-      fetch(`/api/analysis/${sessionId}`)
+      fetch(apiUrl(`/api/analysis/${sessionId}`))
         .then(res => res.ok ? res.json() : null)
         .then(result => { if (result) { setData(result); sessionStorage.setItem('analysisResult', JSON.stringify(result)); } })
         .catch(() => {})

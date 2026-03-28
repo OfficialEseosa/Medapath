@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { apiUrl } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm'];
@@ -84,10 +85,10 @@ export default function SymptomsPage() {
         const formData = new FormData();
         formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
         formData.append('image', file);
-        res = await fetch('/api/analyze', { method: 'POST', body: formData });
+        res = await fetch(apiUrl('/api/analyze'), { method: 'POST', body: formData });
       } else {
         // JSON-only endpoint
-        res = await fetch('/api/analyze/json', {
+        res = await fetch(apiUrl('/api/analyze/json'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)

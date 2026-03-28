@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { apiUrl } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 
 interface Message {
@@ -35,7 +36,7 @@ export default function ChatPage() {
       setInitialLoading(false);
       return;
     }
-    fetch(`/api/chat/history/${sessionId}`)
+    fetch(apiUrl(`/api/chat/history/${sessionId}`))
       .then(res => res.json())
       .then((history: Message[]) => {
         setMessages(history);
@@ -59,7 +60,7 @@ export default function ChatPage() {
     setError(null);
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch(apiUrl('/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId: parseInt(sessionId, 10), message: text.trim() })
@@ -85,7 +86,7 @@ export default function ChatPage() {
 
   const handleSaveReport = () => {
     if (!sessionId) return;
-    window.open(`/api/summary/${sessionId}`, '_blank');
+    window.open(apiUrl(`/api/summary/${sessionId}`), '_blank');
   };
 
   if (!sessionId) {

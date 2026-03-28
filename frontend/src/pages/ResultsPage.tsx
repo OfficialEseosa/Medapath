@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { apiUrl } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -236,7 +237,7 @@ export default function ResultsPage() {
       }
 
       try {
-        const res = await fetch(`/api/hospitals/match?sessionId=${sessionId}`);
+        const res = await fetch(apiUrl(`/api/hospitals/match?sessionId=${sessionId}`));
         if (!res.ok) throw new Error('Failed to fetch matched hospitals.');
         const responseData: MatchResponse = await res.json();
         setData(responseData);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiUrl } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 
 const INSURANCE_PLANS: Record<string, string[]> = {
@@ -172,7 +173,7 @@ export default function IntakePage() {
 
     try {
       sessionStorage.setItem('intakeFormData', JSON.stringify(formData));
-      const res = await fetch('/api/intake', {
+      const res = await fetch(apiUrl('/api/intake'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
