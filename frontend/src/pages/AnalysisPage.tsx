@@ -1,7 +1,38 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function AnalysisPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const data = location.state?.analysisResult;
+
+  if (!data) {
+    return (
+      <main className="max-w-5xl mx-auto px-6 pt-12 pb-24 text-center">
+        <h1 className="text-2xl font-bold mb-4">No Analysis Found</h1>
+        <p className="mb-6">Please start from the intake page.</p>
+        <button onClick={() => navigate('/intake')} className="bg-primary px-6 py-2 text-white rounded-xl">Go to Intake</button>
+      </main>
+    );
+  }
+
+  // Define dynamic color handling based on urgency level
+  let urgencyColorClass = 'text-amber-700';
+  let urgencyBgClass = 'bg-amber-100';
+  let urgencyIconClass = 'text-amber-600';
+  let urgencyIconName = 'error';
+
+  const lowerUrgency = data.urgencyLevel?.toLowerCase() || '';
+  if (lowerUrgency.includes('high') || lowerUrgency.includes('critical') || lowerUrgency.includes('red')) {
+    urgencyColorClass = 'text-error';
+    urgencyBgClass = 'bg-error-container';
+    urgencyIconClass = 'text-error';
+    urgencyIconName = 'emergency';
+  } else if (lowerUrgency.includes('low') || lowerUrgency.includes('green') || lowerUrgency.includes('mild')) {
+    urgencyColorClass = 'text-green-700';
+    urgencyBgClass = 'bg-green-100';
+    urgencyIconClass = 'text-green-600';
+    urgencyIconName = 'check_circle';
+  }
 
   return (
     <main className="max-w-5xl mx-auto px-6 pt-12 pb-24">
@@ -44,34 +75,45 @@ export default function AnalysisPage() {
               </span>
             </div>
             <h2 className="text-3xl font-bold text-on-surface mb-2">
-              Likely Concern: Possible upper respiratory infection
+              Likely Concern: {data.primaryCondition || 'Unknown condition'}
             </h2>
-            <p className="text-on-surface-variant mb-8 leading-relaxed">
-              The pattern of symptoms including cough, slight congestion, and duration suggests a viral inflammation of
-              the upper airways.
-            </p>
+            <div className="text-on-surface-variant mb-4 leading-relaxed">
+              <p>{data.advice || 'No advice provided.'}</p>
+              
+              {data.possibleConditions && data.possibleConditions.length > 0 && (
+                <div className="mt-4">
+                  <strong>Other potential conditions:</strong>
+                  <ul className="list-disc ml-6 mt-1 text-sm">
+                    {data.possibleConditions.map((cond: string, idx: number) => (
+                      <li key={idx}>{cond}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Urgency & Action Tray */}
-          <div className="bg-surface-container-low p-6 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="bg-surface-container-low p-6 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+              <div className={`w-12 h-12 rounded-full ${urgencyBgClass} flex items-center justify-center`}>
                 <span
-                  className="material-symbols-outlined text-amber-600"
+                  className={`material-symbols-outlined ${urgencyIconClass}`}
                   style={{ fontVariationSettings: "'FILL' 1" }}
                 >
-                  error
+                  {urgencyIconName}
                 </span>
               </div>
               <div>
                 <p className="text-xs font-bold text-on-surface-variant uppercase tracking-tighter">Urgency Level</p>
-                <p className="text-lg font-bold text-amber-700">Medium — Amber</p>
+                <p className={`text-lg font-bold ${urgencyColorClass}`}>{data.urgencyLevel}</p>
               </div>
             </div>
             <button
               onClick={() => navigate('/results')}
-              className="bg-primary hover:bg-primary-container text-white px-8 py-3 rounded-xl font-bold transition-all transform active:scale-95 shadow-md"
+              className="bg-primary hover:bg-primary-container text-white px-8 py-3 rounded-xl font-bold transition-all transform active:scale-95 shadow-md flex items-center gap-2"
             >
+              <span className="material-symbols-outlined">local_hospital</span>
               Find Matched Hospitals
             </button>
           </div>
@@ -86,37 +128,41 @@ export default function AnalysisPage() {
               <h3 className="font-bold text-on-tertiary-fixed-variant">Clinical Guidance</h3>
             </div>
             <p className="text-sm text-on-surface leading-relaxed font-medium">
+              We suggest: <strong>{data.careTypeSuggested || 'Routine checkup'}</strong>.
+              <br/><br/>
               Seek urgent care in the next 24 hours if symptoms worsen, or if you experience difficulty breathing.
             </p>
           </div>
 
           {/* Review Image Note */}
-          <div className="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/10 shadow-sm overflow-hidden relative group">
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="material-symbols-outlined text-primary">image</span>
-                <h3 className="font-bold text-on-surface">Review Image</h3>
+          {data.imageAnalyzed && (
+            <div className="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/10 shadow-sm overflow-hidden relative group">
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="material-symbols-outlined text-primary">image</span>
+                  <h3 className="font-bold text-on-surface">Review Image</h3>
+                </div>
+                <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
+                  A diagnostic image was uploaded. Our system has flagged specific regions for clinician review.
+                </p>
+                <a
+                  href="#"
+                  className="text-xs font-bold text-primary flex items-center gap-1 group-hover:underline"
+                >
+                  View annotated report
+                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                </a>
               </div>
-              <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
-                A diagnostic image was uploaded. Our system has flagged specific regions for clinician review.
-              </p>
-              <a
-                href="#"
-                className="text-xs font-bold text-primary flex items-center gap-1 group-hover:underline"
-              >
-                View annotated report
-                <span className="material-symbols-outlined text-sm">arrow_forward</span>
-              </a>
+              {/* Abstract image representation */}
+              <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <img
+                  alt="Medical scan"
+                  className="w-24 h-24 object-cover rounded-xl"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjAahhinIPTqy-BB8t14xOmVh8-kUkyz40QcWbnSbdMuMB_DSBAiJsJCGhybWASAmuE_8HP-EVraSbj9wOkkzigaj1tamjB_kWheyOYbDdm0gf81c_cbTt0ma-tp9LhRCkr1pYsodMOksQBLBCCI9WaY6JcDMcLU6hmvlVelU6Ldr6_DSZRuR9tdA28mgRh4dTo1S86orS19qemoDfrQoUyJ6hTl0gLPWU-_SA-v29Dn7b0XHyjm7UZYJhHboWCjauc6wIVN9ZEZet"
+                />
+              </div>
             </div>
-            {/* Abstract image representation */}
-            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <img
-                alt="Medical scan"
-                className="w-24 h-24 object-cover rounded-xl"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjAahhinIPTqy-BB8t14xOmVh8-kUkyz40QcWbnSbdMuMB_DSBAiJsJCGhybWASAmuE_8HP-EVraSbj9wOkkzigaj1tamjB_kWheyOYbDdm0gf81c_cbTt0ma-tp9LhRCkr1pYsodMOksQBLBCCI9WaY6JcDMcLU6hmvlVelU6Ldr6_DSZRuR9tdA28mgRh4dTo1S86orS19qemoDfrQoUyJ6hTl0gLPWU-_SA-v29Dn7b0XHyjm7UZYJhHboWCjauc6wIVN9ZEZet"
-              />
-            </div>
-          </div>
+          )}
 
           {/* Contact Support */}
           <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 flex items-center justify-between">

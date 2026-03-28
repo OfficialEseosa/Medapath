@@ -1,11 +1,79 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function IntakePage() {
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    age: '',
+    zipCode: '',
+    insuranceProvider: '',
+    planName: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
+  };
+
+  const handleUseLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            // Very simple reverse geocoding or just store lat/long for now
+            // But API needs zipCode as string, let's just simulate or ask user if API demands zipCode
+            // To fulfill the requirement we can just store lat/long to be passed? Wait, IntakeRequest needs zipCode
+            // Usually we'd do a reverse geocode here, but for simplicity we'll just prompt or leave as is.
+            alert(`Location found: ${position.coords.latitude}, ${position.coords.longitude}. (Note: auto-zipcode lookup requires extra API)`);
+          } catch (err) {
+            console.error(err);
+          }
+        },
+        () => alert('Unable to get location')
+      );
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/symptoms');
+    setLoading(true);
+    setError(null);
+
+    const payload = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      age: parseInt(formData.age, 10),
+      zipCode: formData.zipCode,
+      insuranceProvider: formData.insuranceProvider,
+      planName: formData.planName
+    };
+
+    try {
+      const res = await fetch('/api/intake', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to create session. Please check your inputs.');
+      }
+
+      const data = await res.json();
+      sessionStorage.setItem('sessionId', data.sessionId);
+      
+      navigate('/symptoms');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -30,17 +98,40 @@ export default function IntakePage() {
 
       {/* ─── Form Canvas ─── */}
       <div className="bg-surface-container-lowest rounded-3xl p-8 md:p-12 shadow-[0_8px_32px_rgba(25,28,29,0.04)]">
+        {error && (
+          <div className="mb-6 p-4 bg-error/10 text-error rounded-xl font-medium">
+            {error}
+          </div>
+        )}
         <form className="space-y-10" onSubmit={handleSubmit}>
           {/* Section: Identity */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="col-span-full">
-              <label className="block text-sm font-semibold text-on-surface-variant mb-2" htmlFor="full_name">
-                Full Legal Name
+            <div>
+              <label className="block text-sm font-semibold text-on-surface-variant mb-2" htmlFor="first_name">
+                First Name
               </label>
               <input
-                id="full_name"
+                id="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                required
                 type="text"
-                placeholder="Enter your full name as it appears on ID"
+                placeholder="Enter your first name"
+                className="w-full bg-surface-container-low border-none rounded-xl px-4 py-4 text-on-surface focus:ring-0 focus:bg-surface-container-lowest focus:border-b-2 focus:border-primary transition-all duration-200 placeholder:text-outline"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-on-surface-variant mb-2" htmlFor="last_name">
+                Last Name
+              </label>
+              <input
+                id="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                required
+                type="text"
+                placeholder="Enter your last name"
                 className="w-full bg-surface-container-low border-none rounded-xl px-4 py-4 text-on-surface focus:ring-0 focus:bg-surface-container-lowest focus:border-b-2 focus:border-primary transition-all duration-200 placeholder:text-outline"
               />
             </div>
@@ -51,6 +142,9 @@ export default function IntakePage() {
               </label>
               <input
                 id="age"
+                value={formData.age}
+                onChange={handleChange}
+                required
                 type="number"
                 placeholder="Years"
                 className="w-full bg-surface-container-low border-none rounded-xl px-4 py-4 text-on-surface focus:ring-0 focus:bg-surface-container-lowest focus:border-b-2 focus:border-primary transition-all duration-200 placeholder:text-outline"
@@ -63,13 +157,17 @@ export default function IntakePage() {
               </label>
               <div className="relative group">
                 <input
-                  id="zip_code"
+                  id="zipCode"
+                  value={formData.zipCode}
+                  onChange={handleChange}
+                  required
                   type="text"
                   placeholder="00000"
                   className="w-full bg-surface-container-low border-none rounded-xl px-4 py-4 pr-32 text-on-surface focus:ring-0 focus:bg-surface-container-lowest focus:border-b-2 focus:border-primary transition-all duration-200 placeholder:text-outline"
                 />
                 <button
                   type="button"
+                  onClick={handleUseLocation}
                   className="absolute right-2 top-2 bottom-2 px-3 bg-surface-container-high hover:bg-surface-container-highest rounded-lg text-xs font-bold text-primary transition-colors flex items-center gap-1"
                 >
                   <span className="material-symbols-outlined text-sm">my_location</span>
@@ -93,9 +191,10 @@ export default function IntakePage() {
                 </label>
                 <div className="relative">
                   <select
-                    id="insurance_provider"
+                    id="insuranceProvider"
+                    value={formData.insuranceProvider}
+                    onChange={handleChange}
                     className="appearance-none w-full bg-surface-container-low border-none rounded-xl px-4 py-4 text-on-surface focus:ring-0 focus:bg-surface-container-lowest focus:border-b-2 focus:border-primary transition-all duration-200"
-                    defaultValue=""
                   >
                     <option disabled value="">Select Provider</option>
                     <option value="aetna">Aetna</option>
@@ -115,7 +214,9 @@ export default function IntakePage() {
                   Plan Name / Type
                 </label>
                 <input
-                  id="plan_name"
+                  id="planName"
+                  value={formData.planName}
+                  onChange={handleChange}
                   type="text"
                   placeholder="e.g. Choice POS II"
                   className="w-full bg-surface-container-low border-none rounded-xl px-4 py-4 text-on-surface focus:ring-0 focus:bg-surface-container-lowest focus:border-b-2 focus:border-primary transition-all duration-200 placeholder:text-outline"
@@ -140,9 +241,10 @@ export default function IntakePage() {
           <div className="flex justify-end pt-8">
             <button
               type="submit"
-              className="group flex items-center justify-center gap-3 bg-gradient-to-r from-primary to-primary-container text-white px-10 py-4 rounded-full font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
+              disabled={loading}
+              className={`group flex items-center justify-center gap-3 bg-gradient-to-r from-primary to-primary-container text-white px-10 py-4 rounded-full font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              Next
+              {loading ? 'Submitting...' : 'Next'}
               <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">
                 arrow_forward
               </span>

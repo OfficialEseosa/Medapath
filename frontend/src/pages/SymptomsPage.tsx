@@ -1,11 +1,55 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function SymptomsPage() {
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [symptomText, setSymptomText] = useState('');
+  const [severity, setSeverity] = useState('');
+  const [duration, setDuration] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/analysis');
+    if (!symptomText || !severity || !duration) {
+      setError('Please fill out all required fields.');
+      return;
+    }
+    const sessionId = sessionStorage.getItem('sessionId');
+    if (!sessionId) {
+      setError('Session missing. Please go back and resubmit the intake form.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const payload = {
+      sessionId: parseInt(sessionId, 10),
+      symptomText,
+      severity,
+      duration
+    };
+
+    try {
+      const res = await fetch('/api/analyze/json', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!res.ok) {
+        throw new Error('Analysis failed.');
+      }
+
+      const data = await res.json();
+      navigate('/analysis', { state: { analysisResult: data } });
+    } catch (err: any) {
+      setError(err.message || 'Error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -36,6 +80,11 @@ export default function SymptomsPage() {
       </div>
 
       {/* ─── Main Grid ─── */}
+      {error && (
+        <div className="mb-6 p-4 bg-error/10 text-error rounded-xl font-medium">
+          {error}
+        </div>
+      )}
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Form Section */}
@@ -46,13 +95,16 @@ export default function SymptomsPage() {
                 What symptoms are you experiencing?
               </label>
               <textarea
+                value={symptomText}
+                onChange={(e) => setSymptomText(e.target.value)}
+                required
                 rows={6}
                 placeholder="e.g. I've had a persistent dry cough for the past three days, along with a slight fever and body aches..."
                 className="w-full bg-surface-container-low border-none rounded-xl p-4 focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/30 transition-all duration-200 placeholder:text-outline resize-none text-on-surface"
               />
               <div className="flex justify-between items-center mt-3">
                 <p className="text-xs text-on-surface-variant">Be as specific as possible — duration, location, intensity.</p>
-                <span className="text-xs text-outline">0 / 500</span>
+                <span className="text-xs text-outline">{symptomText.length} / 500</span>
               </div>
             </section>
 
@@ -63,17 +115,24 @@ export default function SymptomsPage() {
               </label>
               <div className="grid grid-cols-4 gap-3">
                 {['Mild', 'Moderate', 'Severe', 'Critical'].map((level, idx) => {
-                  const colors = [
+                  const colors = severity === level ? [
+                    'bg-tertiary text-on-tertiary',
+                    'bg-primary text-on-primary',
+                    'bg-amber-600 text-white',
+                    'bg-error text-on-error',
+                  ] : [
                     'bg-tertiary-fixed text-on-tertiary-fixed-variant border-tertiary-fixed',
                     'bg-primary-fixed text-on-primary-fixed-variant border-primary-fixed',
                     'bg-amber-100 text-amber-800 border-amber-200',
                     'bg-error-container text-on-error-container border-error-container',
                   ];
+
                   return (
                     <button
                       key={level}
                       type="button"
-                      className={`py-3 rounded-xl border-2 font-semibold text-sm hover:scale-[1.03] active:scale-95 transition-all ${colors[idx]}`}
+                      onClick={() => setSeverity(level)}
+                      className={`py-3 rounded-xl border-2 font-semibold text-sm hover:scale-[1.03] active:scale-95 transition-all ${colors[idx]} ${severity === level ? 'border-transparent shadow-md' : ''}`}
                     >
                       {level}
                     </button>
@@ -93,8 +152,10 @@ export default function SymptomsPage() {
               <div className="relative">
                 <select
                   id="duration"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  required
                   className="appearance-none w-full bg-surface-container-low border-none rounded-xl px-4 py-4 text-on-surface focus:ring-2 focus:ring-primary/30 transition-all duration-200"
-                  defaultValue=""
                 >
                   <option disabled value="">Select duration</option>
                   <option value="hours">Less than 24 hours</option>
@@ -189,9 +250,10 @@ export default function SymptomsPage() {
           </button>
           <button
             type="submit"
-            className="group flex items-center justify-center gap-3 bg-gradient-to-r from-primary to-primary-container text-white px-10 py-4 rounded-full font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
+            disabled={loading}
+            className={`group flex items-center justify-center gap-3 bg-gradient-to-r from-primary to-primary-container text-white px-10 py-4 rounded-full font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            Analyze Symptoms
+            {loading ? 'Analyzing...' : 'Analyze Symptoms'}
             <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">
               arrow_forward
             </span>
