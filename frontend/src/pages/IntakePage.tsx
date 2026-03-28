@@ -47,10 +47,19 @@ const INSURANCE_PLANS: Record<string, string[]> = {
   'Other': [],
 };
 
+interface FormData {
+  firstName: string;
+  lastName: string;
+  age: string;
+  zipCode: string;
+  insuranceProvider: string;
+  planName: string;
+}
+
 export default function IntakePage() {
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState(() => {
+  const [formData, setFormData] = useState<FormData>(() => {
     try {
       const saved = sessionStorage.getItem('intakeFormData');
       if (saved) return JSON.parse(saved);
