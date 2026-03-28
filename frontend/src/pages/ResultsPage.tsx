@@ -1,0 +1,168 @@
+import { useNavigate } from 'react-router-dom';
+
+export default function ResultsPage() {
+  const navigate = useNavigate();
+
+  const hospitals = [
+    {
+      name: 'Emory University Hospital Midtown',
+      distance: '1.2 mi',
+      type: 'General Hospital',
+      inNetwork: true,
+      waitTime: '~25 min',
+      rating: 4.6,
+    },
+    {
+      name: 'Grady Memorial Hospital',
+      distance: '2.8 mi',
+      type: 'Level I Trauma Center',
+      inNetwork: true,
+      waitTime: '~40 min',
+      rating: 4.3,
+    },
+    {
+      name: 'Piedmont Atlanta Hospital',
+      distance: '4.5 mi',
+      type: 'General Hospital',
+      inNetwork: false,
+      waitTime: '~15 min',
+      rating: 4.7,
+    },
+  ];
+
+  return (
+    <main className="max-w-5xl mx-auto px-6 pt-12 pb-24">
+      {/* ─── Progress Stepper ─── */}
+      <div className="mb-12">
+        <div className="flex justify-between items-end mb-3">
+          <span className="font-headline font-bold text-primary text-sm uppercase tracking-widest">Step 4 of 4</span>
+          <span className="font-body text-on-surface-variant text-sm">Hospital Matches</span>
+        </div>
+        <div className="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden flex gap-1">
+          <div className="h-full w-1/4 bg-primary-container opacity-40 rounded-full" />
+          <div className="h-full w-1/4 bg-primary-container opacity-40 rounded-full" />
+          <div className="h-full w-1/4 bg-primary-container opacity-40 rounded-full" />
+          <div className="h-full w-1/4 bg-gradient-to-r from-primary to-primary-container rounded-full" />
+        </div>
+      </div>
+
+      {/* ─── Header ─── */}
+      <section className="mb-10">
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-on-surface mb-4">
+          Matched Hospitals
+        </h1>
+        <p className="text-lg text-on-surface-variant max-w-2xl leading-relaxed">
+          Based on your symptoms, urgency level, location, and insurance coverage, we've identified the best nearby
+          facilities for your care.
+        </p>
+      </section>
+
+      {/* ─── Summary Card ─── */}
+      <div className="bg-primary-fixed/30 rounded-3xl p-8 mb-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-primary-container flex items-center justify-center text-white">
+            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+              local_hospital
+            </span>
+          </div>
+          <div>
+            <p className="text-sm text-on-primary-fixed-variant font-semibold">Your Assessment</p>
+            <p className="text-lg font-bold text-on-surface">Upper Respiratory Infection • <span className="text-amber-700">Medium Urgency</span></p>
+          </div>
+        </div>
+        <button
+          onClick={() => navigate('/analysis')}
+          className="text-sm font-bold text-primary flex items-center gap-1 hover:underline"
+        >
+          <span className="material-symbols-outlined text-sm">arrow_back</span>
+          Review Analysis
+        </button>
+      </div>
+
+      {/* ─── Hospital Cards ─── */}
+      <div className="space-y-6">
+        {hospitals.map((hospital, idx) => (
+          <div
+            key={idx}
+            className="bg-surface-container-lowest rounded-3xl p-8 shadow-[0_8px_32px_rgba(25,28,29,0.04)] border border-outline-variant/10 hover:shadow-md transition-shadow group"
+          >
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <h3 className="text-xl font-bold text-on-surface">{hospital.name}</h3>
+                  {hospital.inNetwork && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant text-xs font-bold">
+                      <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        verified
+                      </span>
+                      In-Network
+                    </span>
+                  )}
+                  {!hospital.inNetwork && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-xs font-bold">
+                      Out-of-Network
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-6 text-sm text-on-surface-variant">
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">location_on</span>
+                    {hospital.distance}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">local_hospital</span>
+                    {hospital.type}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">schedule</span>
+                    Est. wait: {hospital.waitTime}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      star
+                    </span>
+                    {hospital.rating}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button className="px-6 py-3 rounded-xl border border-outline-variant text-on-surface font-semibold hover:bg-surface-container transition-colors text-sm">
+                  Directions
+                </button>
+                <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-primary to-primary-container text-white font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all text-sm">
+                  Call Now
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ─── Bottom Actions ─── */}
+      <div className="mt-12 p-8 bg-surface-container-high/50 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div>
+          <h4 className="font-bold text-on-surface mb-1">Not finding what you need?</h4>
+          <p className="text-sm text-on-surface-variant">
+            Expand your search radius or update your insurance information.
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate('/intake')}
+            className="px-6 py-3 rounded-xl border border-outline-variant text-on-surface font-semibold hover:bg-surface-container transition-colors text-sm"
+          >
+            Update Info
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            className="px-6 py-3 rounded-xl bg-primary text-white font-bold shadow-md hover:shadow-lg transition-all text-sm"
+          >
+            Start Over
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}
