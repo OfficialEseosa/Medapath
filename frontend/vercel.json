@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://api.medapath.me/api/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
