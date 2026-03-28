@@ -26,6 +26,8 @@ interface MatchResponse {
   sessionId: number;
   diagnosis: string;
   urgencyLevel: string;
+  patientLatitude: number | null;
+  patientLongitude: number | null;
   hospitals: Hospital[];
 }
 
@@ -252,25 +254,14 @@ export default function ResultsPage() {
     fetchHospitals();
   }, []);
 
-  // Try to get geolocation
+  // Use patient coordinates from backend (geocoded from ZIP) for map center
   useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => {
-        if (data?.hospitals?.length) {
-          setUserCoords({ lat: data.hospitals[0].latitude, lng: data.hospitals[0].longitude });
-        }
-      }
-    );
-  }, [data]);
-
-  // Fallback: center on first hospital
-  useEffect(() => {
-    if (!userCoords && data?.hospitals?.length) {
+    if (data?.patientLatitude && data?.patientLongitude) {
+      setUserCoords({ lat: data.patientLatitude, lng: data.patientLongitude });
+    } else if (data?.hospitals?.length) {
       setUserCoords({ lat: data.hospitals[0].latitude, lng: data.hospitals[0].longitude });
     }
-  }, [data, userCoords]);
+  }, [data]);
 
   // ─── Loading / Error states ───────────────────────────────────────────────
 

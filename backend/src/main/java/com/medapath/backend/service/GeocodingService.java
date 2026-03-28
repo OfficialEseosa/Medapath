@@ -15,7 +15,7 @@ public class GeocodingService {
     private final ObjectMapper objectMapper;
     private final String apiKey;
 
-    public GeocodingService(@Value("${google.api.key:}") String apiKey) {
+    public GeocodingService(@Value("${google.maps.api.key:}") String apiKey) {
         this.apiKey = apiKey;
         this.objectMapper = new ObjectMapper();
         this.restClient = RestClient.builder()

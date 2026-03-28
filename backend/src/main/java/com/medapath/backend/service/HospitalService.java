@@ -19,10 +19,13 @@ import java.util.stream.Collectors;
 @Slf4j
 public class HospitalService {
 
+    private static final double NEARBY_THRESHOLD_MILES = 25.0;
+
     private final HospitalRepository hospitalRepository;
     private final SymptomAssessmentRepository assessmentRepository;
     private final IntakeService intakeService;
     private final GeminiService geminiService;
+    private final PlacesService placesService;
 
     public HospitalMatchResponse matchHospitals(Long sessionId) {
         PatientSession session = intakeService.getSession(sessionId);
@@ -32,7 +35,6 @@ public class HospitalService {
             throw new RuntimeException("No analysis found for session: " + sessionId);
         }
 
-        List<Hospital> allHospitals = hospitalRepository.findAll();
         String insuranceProvider = session.getInsuranceProvider();
         String planName = session.getPlanName();
         String careType = assessment.getCareTypeSuggested();
@@ -42,11 +44,66 @@ public class HospitalService {
         double patientLon = session.getLongitude() != null ? session.getLongitude() : 0;
         boolean hasLocation = patientLat != 0 || patientLon != 0;
 
-        List<HospitalDto> ranked = allHospitals.stream()
-                .map(h -> scoreHospital(h, insuranceProvider, planName, careType, urgency, patientLat, patientLon, hasLocation))
-                .sorted(Comparator.comparingInt(HospitalDto::getMatchScore).reversed())
-                .limit(5)
-                .collect(Collectors.toList());
+        List<HospitalDto> ranked;
+
+        if (hasLocation) {
+            // Score DB hospitals and check if any are close to the patient's ZIP
+            List<Hospital> allHospitals = hospitalRepository.findAll();
+            List<HospitalDto> dbResults = allHospitals.stream()
+                    .map(h -> scoreHospital(h, insuranceProvider, planName, careType, urgency, patientLat, patientLon, true))
+                    .sorted(Comparator.comparingInt(HospitalDto::getMatchScore).reversed())
+                    .collect(Collectors.toList());
+
+            // Check if the closest DB hospital is within threshold
+            double closestDbMiles = dbResults.stream()
+                    .filter(h -> h.getDistanceMiles() >= 0)
+                    .mapToDouble(HospitalDto::getDistanceMiles)
+                    .min()
+                    .orElse(Double.MAX_VALUE);
+
+            if (closestDbMiles > NEARBY_THRESHOLD_MILES && placesService.isAvailable()) {
+                // Patient is far from seed data — use Google Places API
+                log.info("Patient at ({}, {}) is {}mi from nearest DB hospital, using Places API",
+                        patientLat, patientLon, String.format("%.1f", closestDbMiles));
+                List<HospitalDto> placesResults = placesService.findNearbyHospitals(
+                        patientLat, patientLon, 16000, 10); // ~10 mile radius
+
+                if (!placesResults.isEmpty()) {
+                    // Score the Places results for care type / urgency
+                    for (HospitalDto h : placesResults) {
+                        int score = 5; // base score for proximity
+                        List<String> reasons = new ArrayList<>();
+                        reasons.add(h.getDistance() + " away");
+
+                        if ("emergency".equals(urgency) || "high".equals(urgency)) {
+                            score += 15;
+                            reasons.add("Urgency: seek immediate care");
+                        }
+                        h.setMatchScore(score);
+                        h.setMatchReason(String.join("; ", reasons));
+                    }
+
+                    ranked = placesResults.stream()
+                            .sorted(Comparator.comparingDouble(HospitalDto::getDistanceMiles))
+                            .limit(5)
+                            .collect(Collectors.toList());
+                } else {
+                    // Places API returned nothing — fall back to DB hospitals sorted by distance
+                    log.info("Places API returned no results, falling back to DB hospitals");
+                    ranked = dbResults.stream().limit(5).collect(Collectors.toList());
+                }
+            } else {
+                ranked = dbResults.stream().limit(5).collect(Collectors.toList());
+            }
+        } else {
+            // No location — just return top DB hospitals without distance
+            List<Hospital> allHospitals = hospitalRepository.findAll();
+            ranked = allHospitals.stream()
+                    .map(h -> scoreHospital(h, insuranceProvider, planName, careType, urgency, 0, 0, false))
+                    .sorted(Comparator.comparingInt(HospitalDto::getMatchScore).reversed())
+                    .limit(5)
+                    .collect(Collectors.toList());
+        }
 
         // Use Gemini to add coverage analysis for top hospitals
         enrichWithCoverageNotes(ranked, insuranceProvider, planName, condition, urgency);
@@ -55,6 +112,8 @@ public class HospitalService {
                 .sessionId(sessionId)
                 .diagnosis(assessment.getPrimaryCondition())
                 .urgencyLevel(assessment.getUrgencyLevel())
+                .patientLatitude(hasLocation ? patientLat : null)
+                .patientLongitude(hasLocation ? patientLon : null)
                 .hospitals(ranked)
                 .build();
     }

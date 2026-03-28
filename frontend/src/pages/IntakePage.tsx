@@ -50,13 +50,12 @@ const INSURANCE_PLANS: Record<string, string[]> = {
 export default function IntakePage() {
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    age: '',
-    zipCode: '',
-    insuranceProvider: '',
-    planName: ''
+  const [formData, setFormData] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('intakeFormData');
+      if (saved) return JSON.parse(saved);
+    } catch { /* ignore */ }
+    return { firstName: '', lastName: '', age: '', zipCode: '', insuranceProvider: '', planName: '' };
   });
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -152,21 +151,18 @@ export default function IntakePage() {
     setLoading(true);
     setError(null);
 
-    const payload: Record<string, unknown> = {
+    const payload = {
       firstName: formData.firstName,
       lastName: formData.lastName,
       age: parseInt(formData.age, 10),
       zipCode: formData.zipCode,
       insuranceProvider: formData.insuranceProvider,
       planName: formData.planName,
+      // No lat/lng — backend geocodes the ZIP using its own Maps API key
     };
-    // Send lat/lng if we have them so backend doesn't need to geocode
-    if (coords) {
-      payload.latitude = coords.lat;
-      payload.longitude = coords.lng;
-    }
 
     try {
+      sessionStorage.setItem('intakeFormData', JSON.stringify(formData));
       const res = await fetch('/api/intake', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
