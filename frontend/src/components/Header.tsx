@@ -1,13 +1,22 @@
 import { NavLink } from 'react-router-dom';
 
+interface NavItem {
+  to: string;
+  label: string;
+  requiresSession?: boolean;
+}
+
+const navItems: NavItem[] = [
+  { to: '/', label: 'Welcome' },
+  { to: '/intake', label: 'Intake' },
+  { to: '/symptoms', label: 'Symptoms', requiresSession: true },
+  { to: '/analysis', label: 'Analysis', requiresSession: true },
+  { to: '/results', label: 'Results', requiresSession: true },
+  { to: '/chat', label: 'AI Chat', requiresSession: true },
+];
+
 export default function Header() {
-  const navItems = [
-    { to: '/', label: 'Welcome' },
-    { to: '/intake', label: 'Intake' },
-    { to: '/symptoms', label: 'Symptoms' },
-    { to: '/analysis', label: 'Analysis' },
-    { to: '/results', label: 'Results' },
-  ];
+  const hasSession = !!sessionStorage.getItem('sessionId');
 
   return (
     <header className="sticky top-0 z-50 shadow-[0_8px_32px_rgba(25,28,29,0.06)] bg-slate-50/80 backdrop-blur-xl">
@@ -19,20 +28,37 @@ export default function Header() {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
-                isActive
-                  ? 'text-blue-700 font-bold border-b-2 border-blue-600 pb-1 transition-colors'
-                  : 'text-slate-500 font-medium hover:text-blue-800 transition-colors'
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
+          {navItems.map((item) => {
+            const locked = item.requiresSession && !hasSession;
+
+            if (locked) {
+              return (
+                <span
+                  key={item.to}
+                  className="text-slate-300 font-medium cursor-not-allowed flex items-center gap-1"
+                  title="Complete the intake form first"
+                >
+                  <span className="material-symbols-outlined text-sm">lock</span>
+                  {item.label}
+                </span>
+              );
+            }
+
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/'}
+                className={({ isActive }) =>
+                  isActive
+                    ? 'text-blue-700 font-bold border-b-2 border-blue-600 pb-1 transition-colors'
+                    : 'text-slate-500 font-medium hover:text-blue-800 transition-colors'
+                }
+              >
+                {item.label}
+              </NavLink>
+            );
+          })}
         </nav>
 
         {/* Actions */}

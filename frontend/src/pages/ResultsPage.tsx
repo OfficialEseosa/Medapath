@@ -625,10 +625,11 @@ export default function ResultsPage() {
             Update Info
           </button>
           <button
-            onClick={() => navigate('/')}
-            className="px-5 py-2.5 rounded-xl bg-primary text-white font-bold shadow-md hover:shadow-lg transition-all text-sm"
+            onClick={() => navigate('/chat')}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-primary-container text-white font-bold shadow-md hover:shadow-lg transition-all text-sm flex items-center gap-2"
           >
-            Start Over
+            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
+            Chat with AI
           </button>
         </div>
       </div>

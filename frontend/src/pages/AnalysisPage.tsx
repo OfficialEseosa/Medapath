@@ -119,13 +119,22 @@ export default function AnalysisPage() {
                 <p className={`text-lg font-bold ${urgencyColorClass}`}>{data.urgencyLevel}</p>
               </div>
             </div>
-            <button
-              onClick={() => navigate('/results')}
-              className="bg-primary hover:bg-primary-container text-white px-8 py-3 rounded-xl font-bold transition-all transform active:scale-95 shadow-md flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined">local_hospital</span>
-              Find Matched Hospitals
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => navigate('/chat')}
+                className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface px-5 py-3 rounded-xl font-bold transition-all transform active:scale-95 shadow-sm flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
+                Ask AI
+              </button>
+              <button
+                onClick={() => navigate('/results')}
+                className="bg-primary hover:bg-primary-container text-white px-8 py-3 rounded-xl font-bold transition-all transform active:scale-95 shadow-md flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined">local_hospital</span>
+                Find Hospitals
+              </button>
+            </div>
           </div>
         </div>
 
